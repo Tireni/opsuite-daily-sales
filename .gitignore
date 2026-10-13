@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env*
+!.env.example
+.vercel/
+.qodo/
+test-results/
+playwright-report/
+*.local
+supabase/.temp/
+docs/
+
+.vercel
+.env*
