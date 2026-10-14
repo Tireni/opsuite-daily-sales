@@ -8,6 +8,7 @@ export interface Sale {
 export interface SalesDashboard {
   day: string;
   total_kobo: number;
+  today_count: number;
   count: number;
   sales: Sale[];
 }

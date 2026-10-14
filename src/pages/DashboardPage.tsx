@@ -14,15 +14,15 @@ export function DashboardPage({ dashboard, loading, error, refresh }: DashboardS
   return <section className="transactions" aria-labelledby="transactions-heading">
     <DailyTotal dashboard={dashboard} error={error}/>
     <div className="table-heading">
-      <h2 id="transactions-heading">Today’s transactions</h2>
+      <h2 id="transactions-heading">Sales history</h2>
       <button type="button" className="refresh" onClick={() => void refresh()} disabled={loading}>{loading ? 'Updating…' : 'Refresh'}</button>
     </div>
     {error ? <div className="table-state" role="alert">
       <strong>Unable to load sales</strong><p>{error}</p><button className="retry" onClick={() => void refresh()}>Try again</button>
-    </div> : loading && !dashboard ? <div className="table-state" role="status">Loading today’s sales…</div> : <>
+    </div> : loading && !dashboard ? <div className="table-state" role="status">Loading sales history…</div> : <>
       <SalesTable sales={visibleSales}/>
       {dashboard?.count === 0 && <div className="table-state">
-        <strong>No sales recorded today</strong><p>Your first sale will appear here.</p><a className="text-link" href="/record">Record a sale</a>
+        <strong>No sales recorded yet</strong><p>Your first sale will appear here.</p><a className="text-link" href="/record">Record a sale</a>
       </div>}
       {!!dashboard?.count && <Pagination page={currentPage} pageCount={pageCount} count={dashboard.count} loading={loading} onPageChange={setPage}/>}
     </>}

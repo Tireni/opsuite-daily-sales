@@ -11,7 +11,7 @@ import { createSalesHandler } from '../server/handlers/salesHandler.js';
 
 const requestId = '11111111-1111-4111-8111-111111111111';
 const saved: Sale = { id: requestId, item: 'Cotton T-shirt', amount_kobo: 1800000, sold_at: '2026-10-13T10:00:00Z' };
-const dashboard: SalesDashboard = { day: '2026-10-13', total_kobo: saved.amount_kobo, count: 1, sales: [saved] };
+const dashboard: SalesDashboard = { day: '2026-10-13', total_kobo: saved.amount_kobo, today_count: 1, count: 1, sales: [saved] };
 
 // Test-only subclass: production wiring never imports this file.
 class TestSalesRepository extends SalesRepository {

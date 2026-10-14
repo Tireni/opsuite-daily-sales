@@ -18,8 +18,11 @@ begin
     (gen_random_uuid(), 'Boundary test: today', 77, midnight),
     (gen_random_uuid(), 'Boundary test: tomorrow', 200, midnight + interval '1 day');
   result := public.daily_sales_dashboard();
-  if (result->>'count')::bigint <> (baseline->>'count')::bigint + 1 then
-    raise exception 'Day boundary count mismatch';
+  if (result->>'count')::bigint <> (baseline->>'count')::bigint + 2 then
+    raise exception 'History must include yesterday and today, and exclude tomorrow';
+  end if;
+  if (result->>'today_count')::bigint <> (baseline->>'today_count')::bigint + 1 then
+    raise exception 'Today count must exclude yesterday and tomorrow';
   end if;
   if (result->>'total_kobo')::bigint <> (baseline->>'total_kobo')::bigint + 77 then
     raise exception 'Day boundary total mismatch';

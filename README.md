@@ -12,14 +12,14 @@ For example, a clothing brand can record a **Cotton T-shirt — Black / M** sold
 - **Numbers-only price field:** type whole naira amounts, such as `18000`. Letters, commas, decimal points, and other symbols are blocked, including in pasted text.
 - **Automatic date and time:** the app records when a sale is saved, so staff do not have to enter the time themselves.
 - **Success popup:** an animated checkmark confirms that the sale was saved. The form then has empty fields ready for the next item.
-- **Dashboard page:** see today's items, prices, sale times, and total amount sold. Newest sales appear first.
+- **Dashboard page:** see your complete sales history, including each item's price, date, and time. Newest sales appear first, and today's total is shown separately above the table.
 - **Five sales per page:** use Previous and Next to move through the list. Ten sales take up two pages.
 - **One complete daily total:** the total includes all of today's sales, including those on other pages.
 - **Saved records:** sales are stored in a real database rather than only in the browser.
 - **Clear messages:** the app explains when it is loading, when there are no sales, or when something needs to be corrected or retried.
 - **Phone and desktop layouts:** both pages adjust to fit smaller screens.
 
-The dashboard checks for updates once a minute and when you return to the browser tab. You can also select **Refresh**. Each new day starts at midnight in Lagos. Older sales stay in the database, but they are not included in today's view or total.
+The dashboard checks for updates once a minute and when you return to the browser tab. You can also select **Refresh**. Each new day starts at midnight in Lagos. Today's total and transaction count start over, but older sales remain visible in the history table with their original dates. They are not added to today's total.
 
 ## Tools used
 
@@ -75,6 +75,7 @@ Create a dedicated Supabase project. In its SQL editor, run:
 
 ```text
 supabase/migrations/202610130001_daily_sales.sql
+supabase/migrations/202610140001_sales_history.sql
 ```
 
 This file creates the sales table and the rules for saving and reading sales. It also adds an index, which helps the database find sales by time more quickly.
@@ -83,6 +84,7 @@ If you use the Supabase command-line tool and are signed in, you can run the sam
 
 ```sh
 supabase db query --linked --project-ref YOUR_PROJECT_REF --file supabase/migrations/202610130001_daily_sales.sql
+supabase db query --linked --project-ref YOUR_PROJECT_REF --file supabase/migrations/202610140001_sales_history.sql
 ```
 
 Replace `YOUR_PROJECT_REF` with your Supabase project reference. Copy the project's URL and secret/service role key into `.env`.
@@ -91,13 +93,13 @@ Replace `YOUR_PROJECT_REF` with your Supabase project reference. Copy the projec
 
 The deployed database was manually filled with **10 example clothing sales**, including T-shirts, a polo shirt, jeans, chinos, shorts, and a hoodie. Each item has a colour and size, and the examples total **₦317,000**. They are demonstration sales, not real customer purchases.
 
-The app does not create these examples when it opens. They were inserted once, with dates and times for the day the script ran. On a later day, they remain saved but do not appear in that day's dashboard.
+The app does not create these examples when it opens. They were inserted once, with dates and times for the day the script ran. On a later day, they remain visible in the sales history, but do not count towards the new day's total.
 
 The example script is `supabase/clothing-examples.sql`. **Running it deletes existing sales and replaces them with the 10 clothing examples.** Use it only when you deliberately want to reset the data.
 
 ## Public access and data
 
-There are no user accounts, registration forms, login screens, or private access links. Anyone who can open the public site can view today's sales and submit new sales. The API checks that sale submissions come from the app's own origin to reduce cross-site requests; this is not authentication and does not prevent a person or script from calling the public API directly.
+There are no user accounts, registration forms, login screens, or private access links. Anyone who can open the public site can view sales history and submit new sales. The API checks that sale submissions come from the app's own origin to reduce cross-site requests; this is not authentication and does not prevent a person or script from calling the public API directly.
 
 The Supabase service-role key stays on the server, and Supabase does not grant anonymous users direct access to the sales table or database functions. The public server API uses that key to read and save sales. The hosted app uses HTTPS to protect requests while they travel over the internet.
 
@@ -118,7 +120,7 @@ The Supabase service-role key stays on the server, and Supabase does not grant a
 The code uses four object-oriented principles where they help:
 
 - **Encapsulation:** `SaleDraft` protects its values. An item, amount, and submission ID must pass its checks before a sale draft can be created.
-- **Abstraction:** `SalesRepository` describes simple tasks such as getting today's sales and saving a sale. The code using it does not need to know the database details.
+- **Abstraction:** `SalesRepository` describes simple tasks such as getting sales history and today's total, or saving a sale. The code using it does not need to know the database details.
 - **Inheritance:** `SupabaseSalesRepository` extends that common storage contract and supplies the Supabase version of those tasks.
 - **Polymorphism:** the request handler works with the common contract, so a different storage implementation can be supplied without rewriting the handler. Tests use this to check the handler separately from the real database.
 
@@ -185,11 +187,11 @@ I built a daily sales book that a business can use in a browser. Staff record an
 - **Automatic times and newest sales first:** I wanted staff to avoid typing dates and to find the sale they just recorded quickly. The database records the time, and the latest sale goes at the top of the list.
 - **A total for the whole day:** I wanted the total to represent all of today's sales, even when the table has several pages. Every page shows the same complete daily total.
 - **Saved records and careful counting:** I chose a real database so sales survive a refresh. Money is stored as whole kobo: for example, ₦100 is saved as 10,000 kobo. This helps avoid tiny rounding mistakes when amounts are added. Each submission also gets its own ID so retrying the same request does not save the same sale twice.
-- **Lagos time:** I wanted everyone to agree on when a business day begins and ends. The app uses midnight in Lagos, regardless of the device's time zone.
+- **Lagos time and lasting history:** I wanted everyone to agree on when a business day begins and ends. The app uses midnight in Lagos, regardless of the device's time zone. Yesterday's sales stay visible with their dates, while the daily total counts only sales made today.
 - **Public access without account setup:** I wanted the app to open directly without accounts or a private link. The app's server-side API keeps the database key out of the browser, while the public site can read and submit sales.
 - **A clear name and a simple layout:** I wanted people to recognise Daily Sales Log immediately and find its two tasks easily. The app avoids extra menus, charts, and decoration that would distract from recording and reviewing sales.
 - **Smaller code files:** I wanted the code to be easier to read and maintain. The form, table, popup, and database code each have their own place, so changing one part is easier to follow.
 
 ### 3. What I would improve with one more day
 
-I would add rate limiting and an owner-managed review or correction process to reduce abuse now that sale submission is public. I would also improve how the app loads long sales lists: it currently gets today's records together and displays five at a time; for a much busier business, I would load only the page being viewed while still keeping the complete daily total.
+I would add rate limiting and an owner-managed review or correction process to reduce abuse now that sale submission is public. I would also improve how the app loads long sales lists: it currently gets the saved history together and displays five at a time; for a much busier business, I would load only the page being viewed while still keeping the complete daily total.

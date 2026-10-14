@@ -21,7 +21,9 @@ try {
   assert.equal(new URL(page.url()).hash, '', 'No special access link is required');
   const before = await (await context.request.get(`${base}/api/sales`)).json();
   await expect(page.locator('tbody tr')).toHaveCount(Math.min(before.count, 5));
-  if (before.count === 0) await expect(page.getByText('No sales recorded today')).toBeVisible();
+  if (before.count === 0) await expect(page.getByText('No sales recorded yet')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sales history', exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Date', exact: true })).toBeVisible();
   await expect(page.getByLabel('Item name')).toHaveCount(0);
   await expect(page.locator('header, footer, img')).toHaveCount(0);
   await expect(page.getByText('Record a sale. Keep today’s business in view.')).toHaveCount(0);
@@ -30,7 +32,10 @@ try {
   await expect(page.getByRole('heading', { level: 1, name: 'Daily Sales Log', exact: true })).toBeVisible();
   await expect(page.locator('table')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Record sale', exact: true })).toBeEnabled();
-  assert.equal(before.total_kobo, before.sales.reduce((sum: number, sale: { amount_kobo: number }) => sum + sale.amount_kobo, 0));
+  const lagosDay = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(new Date(iso));
+  const todaysSales = before.sales.filter((sale: { sold_at: string }) => lagosDay(sale.sold_at) === before.day);
+  assert.equal(before.today_count, todaysSales.length);
+  assert.equal(before.total_kobo, todaysSales.reduce((sum: number, sale: { amount_kobo: number }) => sum + sale.amount_kobo, 0));
   await page.getByRole('button', { name: 'Record sale' }).click();
   await expect(page.getByRole('alert')).toHaveText('Enter an item name.');
   await page.getByLabel('Item name').fill('QA persistence check');
@@ -77,6 +82,8 @@ try {
   const after = await (await context.request.get(`${base}/api/sales`)).json();
   assert.equal(after.total_kobo, before.total_kobo + 123400);
   assert.equal(after.count, before.count + 1);
+  assert.equal(after.today_count, before.today_count + 1);
+  for (const sale of before.sales) assert.ok(after.sales.some((record: { id: string }) => record.id === sale.id), 'Existing history must remain visible');
   const requestId = saved.request().postDataJSON().requestId;
   const retry = await context.request.post(`${base}/api/sales`, { headers: { Origin: base }, data: { item: 'QA persistence check', amount: '1234', requestId } });
   assert.equal(retry.status(), 201);
