@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SaleDraft } from '../server/domain/SaleDraft.js';
-import { authorized, sessionCookie } from '../server/session.js';
 const validateSale = (body: unknown) => {
   const sale = SaleDraft.parse(body);
   return { item: sale.item, amountKobo: sale.amountKobo, requestId: sale.requestId };
@@ -20,13 +19,4 @@ test('rejects invalid and oversized amounts without coercion', () => {
 test('rejects empty names, control characters, oversized names and invalid IDs', () => {
   for (const item of ['', '  ', 'a'.repeat(121), 'a\nb', null]) assert.throws(() => validateSale({ item, amount: '1', requestId }));
   assert.throws(() => validateSale({ item: 'Rice', amount: '1', requestId: 'bad-id' }));
-});
-test('sessions require a valid server signature and cannot be forged', () => {
-  process.env.INTERNAL_ACCESS_TOKEN = 'test-secret-'.repeat(8);
-  const cookie = sessionCookie().split(';')[0];
-  assert.ok(authorized({ headers: { cookie } } as never));
-  assert.equal(authorized({ headers: {} } as never), false);
-  assert.equal(authorized({ headers: { cookie: cookie + 'forged' } } as never), false);
-  process.env.INTERNAL_ACCESS_TOKEN = 'rotated-secret-'.repeat(8);
-  assert.equal(authorized({ headers: { cookie } } as never), false);
 });

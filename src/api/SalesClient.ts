@@ -2,7 +2,6 @@ import type { Sale, SalesDashboard, SaleSubmission } from '../../shared/sales';
 
 /** Browser-facing abstraction; React components never construct HTTP requests. */
 export interface SalesClient {
-  openAccess(token: string): Promise<void>;
   getDashboard(): Promise<SalesDashboard>;
   recordSale(sale: SaleSubmission): Promise<Sale>;
 }
@@ -26,10 +25,6 @@ export class HttpSalesClient implements SalesClient {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
     return data as T;
-  }
-
-  async openAccess(token: string): Promise<void> {
-    await this.#request('/api/access', { token });
   }
 
   getDashboard(): Promise<SalesDashboard> {

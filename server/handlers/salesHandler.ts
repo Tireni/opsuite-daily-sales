@@ -1,6 +1,5 @@
 import type { ServerResponse } from 'node:http';
 import { type Request, body, json, sameOrigin } from '../http.js';
-import { authorized } from '../session.js';
 import { SaleDraft } from '../domain/SaleDraft.js';
 import type { SalesRepository } from '../repositories/SalesRepository.js';
 
@@ -8,7 +7,6 @@ import type { SalesRepository } from '../repositories/SalesRepository.js';
 export function createSalesHandler(repository: SalesRepository) {
   return async function handler(req: Request, res: ServerResponse) {
     try {
-      if (!authorized(req)) return json(res, 403, { error: 'Open the private access link provided by your administrator.' });
       if (req.method === 'GET') return json(res, 200, await repository.getDashboard());
       if (req.method !== 'POST') {
         res.setHeader('Allow', 'GET, POST');

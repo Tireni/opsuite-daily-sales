@@ -8,7 +8,6 @@ import { SalesRepository } from '../server/repositories/SalesRepository.js';
 import { SupabaseSalesRepository } from '../server/repositories/SupabaseSalesRepository.js';
 import type { RpcClient } from '../server/database/SupabaseRpcClient.js';
 import { createSalesHandler } from '../server/handlers/salesHandler.js';
-import { sessionCookie } from '../server/session.js';
 
 const requestId = '11111111-1111-4111-8111-111111111111';
 const saved: Sale = { id: requestId, item: 'Cotton T-shirt', amount_kobo: 1800000, sold_at: '2026-10-13T10:00:00Z' };
@@ -30,16 +29,15 @@ class TestSalesRepository extends SalesRepository {
   }
 }
 
-test('HTTP handler uses the abstract repository and preserves access, validation, and errors', async t => {
-  process.env.INTERNAL_ACCESS_TOKEN = 'handler-test-secret-'.repeat(4);
+test('public HTTP handler supports visitors without cookies and preserves validation and errors', async t => {
   const repository = new TestSalesRepository();
   const server = createServer(createSalesHandler(repository));
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  const headers = { Cookie: sessionCookie().split(';')[0], Origin: base, 'Content-Type': 'application/json' };
+  const headers = { Origin: base, 'Content-Type': 'application/json' };
 
-  assert.equal((await fetch(base)).status, 403);
+  assert.equal((await fetch(base)).status, 200);
   const response = await fetch(base, { headers });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), dashboard);

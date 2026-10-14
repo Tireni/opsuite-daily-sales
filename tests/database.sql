@@ -37,4 +37,4 @@ begin
 end;
 $$;
 rollback;
-select 'PASS: Lagos boundaries, exact aggregate, database constraints and denied public access' as result;
+select 'PASS: Lagos boundaries, exact aggregate, database constraints and denied direct anonymous database access' as result;

@@ -3,8 +3,7 @@ import { chromium, expect } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 const base = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173';
-const token = process.env.INTERNAL_ACCESS_TOKEN!;
-assert.ok(token, 'Server environment is required');
+assert.ok(process.env.SUPABASE_SERVICE_ROLE_KEY, 'Server environment is required for test cleanup');
 const browser = await chromium.launch({ headless: true, channel: 'chromium' });
 const context = await browser.newContext();
 const page = await context.newPage();
@@ -13,12 +12,13 @@ page.on('pageerror', error => errors.push(error.message));
 let createdId: string | undefined;
 const paginationIds: string[] = [];
 try {
-  const denied = await context.request.get(`${base}/api/sales`);
-  assert.equal(denied.status(), 403, 'Anonymous API request must be denied');
-  await page.goto(`${base}/#access=${token}`);
+  assert.deepEqual(await context.cookies(), [], 'Start with a fresh browser and no cookies');
+  const publicResponse = await context.request.get(`${base}/api/sales`);
+  assert.equal(publicResponse.status(), 200, 'Public visitors must be able to load sales');
+  await page.goto(base);
   await expect(page.getByRole('heading', { level: 1, name: 'Daily Sales Log', exact: true })).toBeVisible();
   await expect(page.locator('.total')).not.toHaveText('—');
-  assert.equal(new URL(page.url()).hash, '', 'Access token must be removed from URL');
+  assert.equal(new URL(page.url()).hash, '', 'No special access link is required');
   const before = await (await context.request.get(`${base}/api/sales`)).json();
   await expect(page.locator('tbody tr')).toHaveCount(Math.min(before.count, 5));
   if (before.count === 0) await expect(page.getByText('No sales recorded today')).toBeVisible();
@@ -125,10 +125,10 @@ try {
   await expect(page.getByLabel('Item name')).toBeVisible();
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile sale page must not overflow');
   await page.screenshot({ path: 'test-results/mobile-record.png', fullPage: true });
-  console.log(`PASS ${base}: digits-only typing and paste protection, five sales per page, page navigation, complete daily total, persistence, success popup, access controls, mobile layout.`);
+  assert.deepEqual(await context.cookies(), [], 'Sale creation and refresh must work without authentication cookies');
+  console.log(`PASS ${base}: public access without cookies or special links, sale creation, persistence, digits-only input, pagination, complete daily total, success popup, validation, mobile layout.`);
 } catch (error) {
-  // Never print a staff access token even if navigation fails.
-  console.error(String(error).replaceAll(token, '[redacted]'));
+  console.error(String(error));
   process.exitCode = 1;
 } finally {
   for (const id of paginationIds) {
